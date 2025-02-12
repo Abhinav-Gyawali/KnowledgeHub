@@ -31,8 +31,17 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
+  // User management methods
   async getUser(id: number): Promise<User | undefined> {
     const result = await db.select().from(users).where(eq(users.id, id));
+    return result[0];
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const result = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email));
     return result[0];
   }
 
@@ -44,11 +53,49 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
+  async getUserByVerificationToken(token: string): Promise<User | undefined> {
+    const result = await db
+      .select()
+      .from(users)
+      .where(eq(users.verificationToken, token));
+    return result[0];
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
     const result = await db.insert(users).values(insertUser).returning();
     return result[0];
   }
 
+  async deleteUser(id: number): Promise<void> {
+    await db.delete(users).where(eq(users.id, id));
+  }
+
+  async verifyUserEmail(id: number): Promise<void> {
+    await db
+      .update(questions)
+      .set({
+        isEmailVerified: true,
+        verificationToken: null,
+        verificationTokenExpiry: null,
+      })
+      .where(eq(users.id, id));
+  }
+
+  async updateVerificationToken(
+    id: number,
+    token: string,
+    expiry: Date
+  ): Promise<void> {
+    await db
+      .update(users)
+      .set({
+        verificationToken: token,
+        verificationTokenExpiry: expiry,
+      })
+      .where(eq(users.id, id));
+  }
+
+  // Content management methods (unchanged)
   async getQuestions(): Promise<Question[]> {
     return await db.select().from(questions).orderBy(questions.createdAt);
   }
@@ -96,15 +143,14 @@ export class DatabaseStorage implements IStorage {
     questionId?: number,
     answerId?: number,
   ): Promise<Comment[]> {
-    let query = db.select().from(comments);
+    let query = db.select().from(comments).orderBy(comments.createdAt);
     if (questionId !== undefined) {
       query = query.where(eq(comments.questionId, questionId));
     }
     if (answerId !== undefined) {
       query = query.where(eq(comments.answerId, answerId));
     }
-    const result = await query.orderBy(comments.createdAt);
-    return result;
+    return await query;
   }
 
   async createComment(

@@ -1,11 +1,18 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
+  email: text("email").notNull().unique(),
   password: text("password").notNull(),
+  username: text("username").notNull().unique(),
+  qualifications: text("qualifications"),
+  biography: text("biography"),
+  isEmailVerified: boolean("is_email_verified").notNull().default(false),
+  verificationToken: text("verification_token"),
+  verificationTokenExpiry: timestamp("verification_token_expiry"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const questions = pgTable("questions", {
@@ -37,27 +44,43 @@ export const comments = pgTable("comments", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// Update schemas to include optional media URLs
-export const insertQuestionSchema = createInsertSchema(questions).pick({
-  title: true,
-  content: true,
-}).extend({
-  mediaUrls: z.array(z.string().url()).optional(),
-});
+// Update schemas to include required fields
+export const insertUserSchema = createInsertSchema(users)
+  .pick({
+    email: true,
+    password: true,
+    username: true,
+    qualifications: true,
+    biography: true,
+  })
+  .extend({
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    email: z.string().email("Invalid email address"),
+    username: z.string().min(3, "Username must be at least 3 characters"),
+    qualifications: z.string().optional(),
+    biography: z.string().optional(),
+    captchaToken: z.string(),
+  });
 
-export const insertAnswerSchema = createInsertSchema(answers).pick({
-  content: true,
-}).extend({
-  mediaUrls: z.array(z.string().url()).optional(),
-});
+export const insertQuestionSchema = createInsertSchema(questions)
+  .pick({
+    title: true,
+    content: true,
+  })
+  .extend({
+    mediaUrls: z.array(z.string().url()).optional(),
+  });
+
+export const insertAnswerSchema = createInsertSchema(answers)
+  .pick({
+    content: true,
+  })
+  .extend({
+    mediaUrls: z.array(z.string().url()).optional(),
+  });
 
 export const insertCommentSchema = createInsertSchema(comments).pick({
   content: true,
-});
-
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

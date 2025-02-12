@@ -13,10 +13,17 @@ import {
 export interface IStorage {
   sessionStore: Store;
 
+  // User management
   getUser(id: number): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByVerificationToken(token: string): Promise<User | undefined>;
   createUser(insertUser: InsertUser): Promise<User>;
+  deleteUser(id: number): Promise<void>;
+  verifyUserEmail(id: number): Promise<void>;
+  updateVerificationToken(id: number, token: string, expiry: Date): Promise<void>;
 
+  // Content management
   getQuestions(): Promise<Question[]>;
   getQuestion(id: number): Promise<Question | undefined>;
   createQuestion(
