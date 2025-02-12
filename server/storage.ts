@@ -8,84 +8,76 @@ import {
   InsertQuestion,
   InsertAnswer,
   InsertComment,
+  users,
+  questions,
+  answers,
+  comments,
 } from "@shared/schema";
-import createMemoryStore from "memorystore";
+import { db } from "./db";
+import { eq, sql } from "drizzle-orm";
 import session from "express-session";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
 
-const MemoryStore = createMemoryStore(session);
+const PostgresSessionStore = connectPg(session);
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private questions: Map<number, Question>;
-  private answers: Map<number, Answer>;
-  private comments: Map<number, Comment>;
+export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
-  private currentIds: {
-    users: number;
-    questions: number;
-    answers: number;
-    comments: number;
-  };
 
   constructor() {
-    this.users = new Map();
-    this.questions = new Map();
-    this.answers = new Map();
-    this.comments = new Map();
-    this.sessionStore = new MemoryStore({ checkPeriod: 86400000 });
-    this.currentIds = {
-      users: 1,
-      questions: 1,
-      answers: 1,
-      comments: 1,
-    };
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      createTableIfMissing: true,
+    });
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const result = await db.select().from(users).where(eq(users.id, id));
+    return result[0];
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const result = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, username));
+    return result[0];
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentIds.users++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+    const result = await db.insert(users).values(insertUser).returning();
+    return result[0];
   }
 
   async getQuestions(): Promise<Question[]> {
-    return Array.from(this.questions.values());
+    return await db.select().from(questions).orderBy(questions.createdAt);
   }
 
   async getQuestion(id: number): Promise<Question | undefined> {
-    return this.questions.get(id);
+    const result = await db
+      .select()
+      .from(questions)
+      .where(eq(questions.id, id));
+    return result[0];
   }
 
   async createQuestion(
     insertQuestion: InsertQuestion,
     authorId: number,
   ): Promise<Question> {
-    const id = this.currentIds.questions++;
-    const question: Question = {
-      ...insertQuestion,
-      id,
-      authorId,
-      votes: 0,
-      createdAt: new Date(),
-    };
-    this.questions.set(id, question);
-    return question;
+    const result = await db
+      .insert(questions)
+      .values({ ...insertQuestion, authorId })
+      .returning();
+    return result[0];
   }
 
   async getAnswers(questionId: number): Promise<Answer[]> {
-    return Array.from(this.answers.values()).filter(
-      (answer) => answer.questionId === questionId,
-    );
+    return await db
+      .select()
+      .from(answers)
+      .where(eq(answers.questionId, questionId))
+      .orderBy(answers.createdAt);
   }
 
   async createAnswer(
@@ -93,25 +85,26 @@ export class MemStorage implements IStorage {
     questionId: number,
     authorId: number,
   ): Promise<Answer> {
-    const id = this.currentIds.answers++;
-    const answer: Answer = {
-      ...insertAnswer,
-      id,
-      questionId,
-      authorId,
-      votes: 0,
-      createdAt: new Date(),
-    };
-    this.answers.set(id, answer);
-    return answer;
+    const result = await db
+      .insert(answers)
+      .values({ ...insertAnswer, questionId, authorId })
+      .returning();
+    return result[0];
   }
 
-  async getComments(questionId?: number, answerId?: number): Promise<Comment[]> {
-    return Array.from(this.comments.values()).filter(
-      (comment) =>
-        (questionId && comment.questionId === questionId) ||
-        (answerId && comment.answerId === answerId),
-    );
+  async getComments(
+    questionId?: number,
+    answerId?: number,
+  ): Promise<Comment[]> {
+    let query = db.select().from(comments);
+    if (questionId !== undefined) {
+      query = query.where(eq(comments.questionId, questionId));
+    }
+    if (answerId !== undefined) {
+      query = query.where(eq(comments.answerId, answerId));
+    }
+    const result = await query.orderBy(comments.createdAt);
+    return result;
   }
 
   async createComment(
@@ -120,34 +113,34 @@ export class MemStorage implements IStorage {
     questionId?: number,
     answerId?: number,
   ): Promise<Comment> {
-    const id = this.currentIds.comments++;
-    const comment: Comment = {
-      ...insertComment,
-      id,
-      authorId,
-      questionId: questionId || null,
-      answerId: answerId || null,
-      createdAt: new Date(),
-    };
-    this.comments.set(id, comment);
-    return comment;
+    const result = await db
+      .insert(comments)
+      .values({ ...insertComment, authorId, questionId, answerId })
+      .returning();
+    return result[0];
   }
 
   async voteQuestion(id: number, value: number): Promise<Question> {
-    const question = this.questions.get(id);
-    if (!question) throw new Error("Question not found");
-    question.votes += value;
-    this.questions.set(id, question);
-    return question;
+    const result = await db
+      .update(questions)
+      .set({
+        votes: sql`votes + ${value}`,
+      })
+      .where(eq(questions.id, id))
+      .returning();
+    return result[0];
   }
 
   async voteAnswer(id: number, value: number): Promise<Answer> {
-    const answer = this.answers.get(id);
-    if (!answer) throw new Error("Answer not found");
-    answer.votes += value;
-    this.answers.set(id, answer);
-    return answer;
+    const result = await db
+      .update(answers)
+      .set({
+        votes: sql`votes + ${value}`,
+      })
+      .where(eq(answers.id, id))
+      .returning();
+    return result[0];
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
