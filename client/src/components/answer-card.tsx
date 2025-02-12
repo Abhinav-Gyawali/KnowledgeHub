@@ -93,6 +93,29 @@ export default function AnswerCard({ answer }: AnswerCardProps) {
             </div>
             <div className="prose max-w-none">{answer.content}</div>
 
+            {/* Display media content */}
+            {answer.mediaUrls && answer.mediaUrls.length > 0 && (
+              <div className="mt-4 grid grid-cols-2 gap-4">
+                {answer.mediaUrls.map((url, index) => (
+                  <div key={index} className="relative">
+                    {url.includes('video') ? (
+                      <video
+                        src={url}
+                        className="w-full rounded-lg"
+                        controls
+                      />
+                    ) : (
+                      <img
+                        src={url}
+                        alt={`Answer media ${index + 1}`}
+                        className="w-full rounded-lg"
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="mt-4 flex items-center gap-2">
               <Button
                 variant="ghost"

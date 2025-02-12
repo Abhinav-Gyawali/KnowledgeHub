@@ -17,6 +17,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { MediaUpload } from "@/components/ui/media-upload";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -87,6 +88,9 @@ export default function HomePage() {
                   {...form.register("content")}
                 />
               </div>
+              <MediaUpload
+                onMediaChange={(urls) => form.setValue("mediaUrls", urls)}
+              />
               <Button type="submit" className="w-full">
                 Post Question
               </Button>

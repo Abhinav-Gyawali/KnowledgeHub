@@ -10,11 +10,17 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { MediaUpload } from "@/components/ui/media-upload";
+
+interface InsertAnswer extends Omit<Answer, 'id' | 'createdAt' | 'updatedAt'> {
+  mediaUrls?: string[];
+}
+
 
 export default function QuestionPage() {
   const { id } = useParams();
   const { toast } = useToast();
-  
+
   const { data: question, isLoading: questionLoading } = useQuery<Question>({
     queryKey: [`/api/questions/${id}`],
   });
@@ -23,12 +29,12 @@ export default function QuestionPage() {
     queryKey: [`/api/questions/${id}/answers`],
   });
 
-  const form = useForm({
+  const form = useForm<InsertAnswer>({
     resolver: zodResolver(insertAnswerSchema),
   });
 
   const submitAnswerMutation = useMutation({
-    mutationFn: async (data: { content: string }) => {
+    mutationFn: async (data: InsertAnswer) => {
       const res = await apiRequest("POST", `/api/questions/${id}/answers`, data);
       return res.json();
     },
@@ -62,19 +68,22 @@ export default function QuestionPage() {
   return (
     <div className="container py-8 max-w-4xl">
       <QuestionCard question={question} expanded />
-      
+
       <div className="mt-8">
         <h2 className="text-2xl font-bold mb-4">
           {answers?.length || 0} Answers
         </h2>
-        
+
         <form onSubmit={form.handleSubmit((data) => submitAnswerMutation.mutate(data))} className="mb-8">
           <Textarea
             placeholder="Write your answer..."
             className="min-h-[200px] mb-4"
             {...form.register("content")}
           />
-          <Button type="submit" disabled={submitAnswerMutation.isPending}>
+          <MediaUpload
+            onMediaChange={(urls) => form.setValue("mediaUrls", urls)}
+          />
+          <Button type="submit" className="mt-4" disabled={submitAnswerMutation.isPending}>
             {submitAnswerMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (

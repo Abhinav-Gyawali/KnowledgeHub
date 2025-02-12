@@ -108,6 +108,28 @@ export default function QuestionCard({ question, expanded = false }: QuestionCar
           {expanded ? question.content : question.content.slice(0, 200) + "..."}
         </div>
 
+        {question.mediaUrls && question.mediaUrls.length > 0 && (
+          <div className="mt-4 grid grid-cols-2 gap-4">
+            {question.mediaUrls.map((url, index) => (
+              <div key={index} className="relative">
+                {url.includes('video') ? (
+                  <video
+                    src={url}
+                    className="w-full rounded-lg"
+                    controls
+                  />
+                ) : (
+                  <img
+                    src={url}
+                    alt={`Question media ${index + 1}`}
+                    className="w-full rounded-lg"
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="mt-4 flex items-center gap-2">
           <Button
             variant="ghost"
