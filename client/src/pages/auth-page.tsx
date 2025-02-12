@@ -124,6 +124,9 @@ function RegisterForm() {
   const { registerMutation } = useAuth();
   const form = useForm<InsertUser>({
     resolver: zodResolver(insertUserSchema),
+    defaultValues: {
+      captchaToken: "temporary-captcha-token", // Temporary for testing
+    }
   });
 
   return (

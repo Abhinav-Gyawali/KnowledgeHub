@@ -19,7 +19,7 @@ export async function sendVerificationEmail(
 
   const msg = {
     to: toEmail,
-    from: process.env.SMTP_EMAIL,
+    from: process.env.SMTP_EMAIL as string,
     subject: 'Verify your email for DevQ&A',
     html: `
       <div>
@@ -48,7 +48,7 @@ export async function sendPasswordResetEmail(
 
   const msg = {
     to: toEmail,
-    from: process.env.SMTP_EMAIL,
+    from: process.env.SMTP_EMAIL as string,
     subject: 'Reset your DevQ&A password',
     html: `
       <div>

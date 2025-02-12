@@ -72,7 +72,7 @@ export class DatabaseStorage implements IStorage {
 
   async verifyUserEmail(id: number): Promise<void> {
     await db
-      .update(questions)
+      .update(users)
       .set({
         isEmailVerified: true,
         verificationToken: null,
@@ -95,7 +95,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id));
   }
 
-  // Content management methods (unchanged)
+  // Content management methods
   async getQuestions(): Promise<Question[]> {
     return await db.select().from(questions).orderBy(questions.createdAt);
   }
