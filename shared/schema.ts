@@ -15,6 +15,7 @@ export const questions = pgTable("questions", {
   authorId: integer("author_id").notNull(),
   votes: integer("votes").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  mediaUrls: text("media_urls").array(),
 });
 
 export const answers = pgTable("answers", {
@@ -24,6 +25,7 @@ export const answers = pgTable("answers", {
   authorId: integer("author_id").notNull(),
   votes: integer("votes").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  mediaUrls: text("media_urls").array(),
 });
 
 export const comments = pgTable("comments", {
@@ -35,22 +37,27 @@ export const comments = pgTable("comments", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-});
-
+// Update schemas to include optional media URLs
 export const insertQuestionSchema = createInsertSchema(questions).pick({
   title: true,
   content: true,
+}).extend({
+  mediaUrls: z.array(z.string().url()).optional(),
 });
 
 export const insertAnswerSchema = createInsertSchema(answers).pick({
   content: true,
+}).extend({
+  mediaUrls: z.array(z.string().url()).optional(),
 });
 
 export const insertCommentSchema = createInsertSchema(comments).pick({
   content: true,
+});
+
+export const insertUserSchema = createInsertSchema(users).pick({
+  username: true,
+  password: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
