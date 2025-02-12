@@ -7,14 +7,29 @@ import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
 import HomePage from "@/pages/home-page";
 import QuestionPage from "@/pages/question-page";
+import Layout from "@/components/layout";
 import { ProtectedRoute } from "./lib/protected-route";
 
 function Router() {
   return (
     <Switch>
-      <ProtectedRoute path="/" component={HomePage} />
-      <ProtectedRoute path="/questions/:id" component={QuestionPage} />
       <Route path="/auth" component={AuthPage} />
+      <ProtectedRoute 
+        path="/" 
+        component={() => (
+          <Layout>
+            <HomePage />
+          </Layout>
+        )} 
+      />
+      <ProtectedRoute 
+        path="/questions/:id" 
+        component={() => (
+          <Layout>
+            <QuestionPage />
+          </Layout>
+        )} 
+      />
       <Route component={NotFound} />
     </Switch>
   );
